@@ -1,48 +1,41 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Navbar from '@/components/ui/Navbar';
-import AddExpenseForm from '@/components/expenses/AddExpenseForm';
-import ExpenseTable from '@/components/expenses/ExpenseTable';
-import ExpenseFilters from '@/components/expenses/ExpenseFilters';
-import ExpenseSummary from '@/components/expenses/ExpenseSummary';
-import CategorySummaryCards from '@/components/expenses/CategorySummaryCards';
-import { Expense } from '@/types/expense';
-import { getExpenses } from '@/lib/api';
+import { useEffect, useState } from "react";
+import Navbar from "@/components/ui/Navbar";
+import AddExpenseForm from "@/components/expenses/AddExpenseForm";
+import ExpenseTable from "@/components/expenses/ExpenseTable";
+import ExpenseFilters from "@/components/expenses/ExpenseFilters";
+import ExpenseSummary from "@/components/expenses/ExpenseSummary";
+import CategorySummaryCards from "@/components/expenses/CategorySummaryCards";
+import { Expense } from "@/types/expense";
+import { getExpenses, getMe } from "@/lib/api";
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<{ email: string } | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/signin');
-      return;
-    }
+    loadData();
+  }, []);
 
-    loadExpenses();
-  }, [router]);
-
-  const loadExpenses = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await getExpenses();
-      setExpenses(data);
-      setFilteredExpenses(data);
+      const [userData, expensesData] = await Promise.all([getMe(), getExpenses()]);
+      setUser(userData.data);
+      setExpenses(expensesData.data);
+      setFilteredExpenses(expensesData);
     } catch (err) {
-      console.error('Failed to load expenses:', err);
+      console.error("Failed to load data:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExpenseAdded = (newExpense: Expense) => {
-    setExpenses([...expenses, newExpense]);
-    setFilteredExpenses([...expenses, newExpense]);
+  const handleExpenseAdded = () => {
+    loadData(); // Reload all data to ensure consistency
   };
 
   const handleExpenseDeleted = (id: string) => {
@@ -71,19 +64,23 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
   }
 
   return (
     <>
-      <Navbar />
-      <div className="min-h-screen bg-gray-100">
+      <Navbar email={user?.email} />
+      <div className="min-h-screen bg-gray-100 pt-16">
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-4xl font-bold mb-8 text-gray-900">Expense Dashboard</h1>
 
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4">Add Expense</h2>
-            <AddExpenseForm onExpenseAdded={handleExpenseAdded} />
+            <AddExpenseForm onSuccess={handleExpenseAdded} />
           </div>
 
           <ExpenseSummary expenses={filteredExpenses} />
@@ -102,7 +99,7 @@ export default function DashboardPage() {
 
           <div>
             <h2 className="text-2xl font-bold mb-4">All Expenses</h2>
-            <ExpenseTable expenses={filteredExpenses} onExpenseDeleted={handleExpenseDeleted} />
+            <ExpenseTable expenses={filteredExpenses} onDelete={handleExpenseDeleted} />
           </div>
         </div>
       </div>

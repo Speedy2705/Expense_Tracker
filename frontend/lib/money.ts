@@ -1,48 +1,32 @@
-import axios from 'axios';
+import { Expense } from "@/types/expense";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-
-export async function signIn(username: string, password: string) {
-  try {
-    const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-      username,
-      password,
-    });
-    localStorage.setItem('token', response.data.access_token);
-    return { success: true };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.detail || 'Sign in failed',
-    };
-  }
+export function formatRupees(amount: string | number): string {
+  // Parse to number, format using Intl.NumberFormat with en-IN locale and INR currency
+  // Output example: ₹1,234.50
+  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
 }
 
-export async function signUp(data: {
-  email: string;
-  username: string;
-  password: string;
-  full_name?: string;
-}) {
-  try {
-    await axios.post(`${API_BASE_URL}/auth/register`, data);
-    return { success: true };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.detail || 'Sign up failed',
-    };
-  }
+export function sumExpenses(expenses: Expense[]): string {
+  // CORRECT approach: convert each amount_rupees string to integer paise using Math.round(parseFloat(x) * 100)
+  // Sum all paise as integers (no float arithmetic on currency)
+  // Divide total paise by 100 to get rupees
+  // Return formatted using formatRupees()
+  const totalPaise = expenses.reduce((sum, e) => {
+    return sum + Math.round(parseFloat(e.amount_rupees) * 100);
+  }, 0);
+  return formatRupees(totalPaise / 100);
 }
 
-export function logout() {
-  localStorage.removeItem('token');
-}
-
-export function isLoggedIn(): boolean {
-  return !!localStorage.getItem('token');
-}
-
-export function getToken(): string | null {
-  return localStorage.getItem('token');
+export function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString("en-IN", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }

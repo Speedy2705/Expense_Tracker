@@ -1,19 +1,11 @@
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
+import { getMe } from "@/lib/api";
+import { User } from "@/types/expense";
 
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(date);
-}
-
-export function parseDate(dateString: string): Date {
-  return new Date(dateString);
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const res = await getMe();
+    return res.data;
+  } catch {
+    return null;
+  }
 }

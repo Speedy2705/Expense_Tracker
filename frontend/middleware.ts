@@ -1,32 +1,26 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
+  // Read cookie "access_token" from request.cookies.get("access_token")
+  const token = request.cookies.get("access_token")?.value;
 
-  const protectedRoutes = ['/dashboard'];
-  const authRoutes = ['/signin', '/signup'];
+  // Get pathname from request.nextUrl.pathname
+  const pathname = request.nextUrl.pathname;
 
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
-  const isAuthRoute = authRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
-
-  // Redirect to signin if accessing protected route without token
-  if (isProtectedRoute && !token) {
-    return NextResponse.redirect(new URL('/signin', request.url));
+  // If no token AND pathname starts with "/dashboard": redirect to /signin
+  if (!token && pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/signin", request.url));
   }
 
-  // Redirect to dashboard if accessing auth routes with token
-  if (isAuthRoute && token) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  // If token exists AND (pathname === "/signin" OR pathname === "/signup"): redirect to /dashboard
+  if (token && (pathname === "/signin" || pathname === "/signup")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  // Otherwise: return NextResponse.next()
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ["/dashboard/:path*", "/signin", "/signup"],
 };

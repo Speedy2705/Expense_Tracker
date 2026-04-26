@@ -1,16 +1,16 @@
 'use client';
 
 import { Expense } from '@/types/expense';
-import { formatCurrency, formatDate } from '@/lib/money';
+import { formatRupees, formatDate } from '@/lib/money';
 import { deleteExpense } from '@/lib/api';
 import { useState } from 'react';
 
 interface ExpenseTableProps {
   expenses: Expense[];
-  onExpenseDeleted: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export default function ExpenseTable({ expenses, onExpenseDeleted }: ExpenseTableProps) {
+export default function ExpenseTable({ expenses, onDelete }: ExpenseTableProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
@@ -18,7 +18,7 @@ export default function ExpenseTable({ expenses, onExpenseDeleted }: ExpenseTabl
       setDeleting(id);
       try {
         await deleteExpense(id);
-        onExpenseDeleted(id);
+        onDelete(id);
       } catch (err) {
         alert('Failed to delete expense');
       } finally {
@@ -70,7 +70,7 @@ export default function ExpenseTable({ expenses, onExpenseDeleted }: ExpenseTabl
                 {expense.category}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {formatCurrency(expense.amount)}
+                {formatRupees(expense.amount_rupees)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <button

@@ -1,27 +1,26 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Expense } from '@/types/expense';
-import { createExpense } from '@/lib/api';
-import Spinner from '@/components/ui/Spinner';
-import ErrorMessage from '@/components/ui/ErrorMessage';
+import { useState } from "react";
+import { createExpense } from "@/lib/api";
+import Spinner from "@/components/ui/Spinner";
+import ErrorMessage from "@/components/ui/ErrorMessage";
 
 interface AddExpenseFormProps {
-  onExpenseAdded: (expense: Expense) => void;
+  onSuccess: () => void;
 }
 
-export default function AddExpenseForm({ onExpenseAdded }: AddExpenseFormProps) {
+export default function AddExpenseForm({ onSuccess }: AddExpenseFormProps) {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    amount: '',
-    category: 'Food',
-    date: new Date().toISOString().split('T')[0],
+    title: "",
+    description: "",
+    amount: "",
+    category: "Food",
+    date: new Date().toISOString().split("T")[0],
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const categories = ['Food', 'Transportation', 'Entertainment', 'Utilities', 'Healthcare', 'Other'];
+  const categories = ["Food", "Transportation", "Entertainment", "Utilities", "Healthcare", "Other"];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -33,26 +32,47 @@ export default function AddExpenseForm({ onExpenseAdded }: AddExpenseFormProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
+      // Validation
+      if (!formData.title.trim()) {
+        throw new Error("Title is required");
+      }
+      if (!formData.amount || parseFloat(formData.amount) <= 0) {
+        throw new Error("Amount must be greater than 0");
+      }
+      if (!formData.date) {
+        throw new Error("Date is required");
+      }
+
+      // Generate idempotency key
+      const idempotencyKey = `expense_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
       const expenseData = {
-        ...formData,
-        amount: parseFloat(formData.amount),
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        amount_rupees: parseFloat(formData.amount),
+        category: formData.category,
         date: new Date(formData.date).toISOString(),
+        idempotency_key: idempotencyKey,
       };
-      const newExpense = await createExpense(expenseData);
-      onExpenseAdded(newExpense);
+
+      await createExpense(expenseData);
+
+      // Reset form
       setFormData({
-        title: '',
-        description: '',
-        amount: '',
-        category: 'Food',
-        date: new Date().toISOString().split('T')[0],
+        title: "",
+        description: "",
+        amount: "",
+        category: "Food",
+        date: new Date().toISOString().split("T")[0],
       });
-    } catch (err) {
-      setError('Failed to create expense');
+
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || "Failed to create expense");
     } finally {
       setLoading(false);
     }
@@ -61,7 +81,7 @@ export default function AddExpenseForm({ onExpenseAdded }: AddExpenseFormProps) 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow">
       {error && <ErrorMessage message={error} />}
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">Title</label>
@@ -83,6 +103,7 @@ export default function AddExpenseForm({ onExpenseAdded }: AddExpenseFormProps) 
             value={formData.amount}
             onChange={handleChange}
             step="0.01"
+            min="0.01"
             required
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
@@ -133,7 +154,7 @@ export default function AddExpenseForm({ onExpenseAdded }: AddExpenseFormProps) 
         disabled={loading}
         className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
       >
-        {loading ? <Spinner /> : 'Add Expense'}
+        {loading ? <Spinner /> : "Add Expense"}
       </button>
     </form>
   );

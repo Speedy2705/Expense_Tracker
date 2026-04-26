@@ -1,43 +1,63 @@
-import axios from 'axios';
-import { Expense } from '@/types/expense';
+import axios, { AxiosResponse } from "axios";
+import { User, Expense, CreateExpenseInput } from "@/types/expense";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-
+// Create an axios instance with baseURL = process.env.NEXT_PUBLIC_API_URL and withCredentials: true
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  withCredentials: true,
 });
 
-// Add token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Add a response interceptor:
+// - On success: pass through
+// - On error: if error.response?.status === 401, check window.location.pathname
+//   - If NOT on "/signin" or "/signup", do window.location.href = "/signin"
+// - Always return Promise.reject(err) after handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const pathname = window.location.pathname;
+      if (pathname !== "/signin" && pathname !== "/signup") {
+        window.location.href = "/signin";
+      }
+    }
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
-export async function getExpenses(): Promise<Expense[]> {
-  const response = await api.get('/expenses/');
-  return response.data;
+// Export these typed async functions (all use the axios instance):
+export async function signUp(email: string, password: string): Promise<AxiosResponse<User>> {
+  return api.post("/auth/signup", { email, password });
 }
 
-export async function getExpense(id: string): Promise<Expense> {
-  const response = await api.get(`/expenses/${id}`);
-  return response.data;
+export async function signIn(email: string, password: string): Promise<AxiosResponse<User>> {
+  return api.post("/auth/signin", { email, password });
 }
 
-export async function createExpense(data: Partial<Expense>): Promise<Expense> {
-  const response = await api.post('/expenses/', data);
-  return response.data;
+export async function signOut(): Promise<AxiosResponse<void>> {
+  return api.post("/auth/signout");
 }
 
-export async function updateExpense(id: string, data: Partial<Expense>): Promise<Expense> {
-  const response = await api.put(`/expenses/${id}`, data);
-  return response.data;
+export async function getMe(): Promise<AxiosResponse<User>> {
+  return api.get("/auth/me");
 }
 
-export async function deleteExpense(id: string): Promise<void> {
-  await api.delete(`/expenses/${id}`);
+export async function createExpense(data: CreateExpenseInput): Promise<AxiosResponse<Expense>> {
+  return api.post("/expenses", data, {
+    headers: {
+      "Idempotency-Key": data.idempotency_key,
+    },
+  });
 }
 
-export default api;
+export async function getExpenses(category?: string): Promise<AxiosResponse<Expense[]>> {
+  const params: Record<string, string> = { sort: "date_desc" };
+  if (category && category !== "All") {
+    params.category = category;
+  }
+  return api.get("/expenses", { params });
+}
+
+export async function deleteExpense(id: string): Promise<AxiosResponse<void>> {
+  return api.delete(`/expenses/${id}`);
+}

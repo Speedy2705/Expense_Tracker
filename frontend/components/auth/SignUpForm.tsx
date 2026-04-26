@@ -1,101 +1,136 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { signUp } from '@/lib/auth';
-import ErrorMessage from '@/components/ui/ErrorMessage';
-import Spinner from '@/components/ui/Spinner';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signUp } from "@/lib/api";
+import ErrorMessage from "@/components/ui/ErrorMessage";
+import Spinner from "@/components/ui/Spinner";
 
 export default function SignUpForm() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "Valid email required";
+    }
+
+    if (password.length < 8) {
+      newErrors.password = "Minimum 8 characters";
+    }
+
+    if (confirm !== password) {
+      newErrors.confirm = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setApiError("");
+
+    if (!validate()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = await signUp({ email, username, password, full_name: fullName });
-      if (result.success) {
-        router.push('/signin');
-      } else {
-        setError(result.error || 'Sign up failed');
-      }
-    } catch (err) {
-      setError('An error occurred during sign up');
+      await signUp(email, password);
+      router.push("/dashboard");
+    } catch (err: any) {
+      setApiError(err.response?.data?.detail || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <ErrorMessage message={error} />}
-      
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Full Name</label>
-        <input
-          type="text"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        />
+    <div className="w-full max-w-md">
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-semibold text-gray-900">Create account</h1>
+        <p className="text-sm text-gray-500 mt-2">Start tracking your expenses</p>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
+      {apiError && <ErrorMessage message={apiError} />}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Username</label>
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mt-1"
+            required
+          />
+          {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
+        </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mt-1"
+            required
+          />
+          {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password}</p>}
+        </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
-      >
-        {loading ? <Spinner /> : 'Sign Up'}
-      </button>
+        <div>
+          <label htmlFor="confirm" className="block text-sm font-medium text-gray-700">
+            Confirm password
+          </label>
+          <input
+            id="confirm"
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mt-1"
+            required
+          />
+          {errors.confirm && <p className="text-xs text-red-600 mt-1">{errors.confirm}</p>}
+        </div>
 
-      <p className="text-center text-sm text-gray-600">
-        Already have an account?{' '}
-        <Link href="/signin" className="font-medium text-blue-600 hover:text-blue-500">
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+        >
+          {loading ? (
+            <>
+              <Spinner size={16} />
+              Creating account...
+            </>
+          ) : (
+            "Create account"
+          )}
+        </button>
+      </form>
+
+      <p className="text-center text-sm text-gray-600 mt-6">
+        Already have an account?{" "}
+        <a href="/signin" className="text-indigo-600 hover:underline">
           Sign in
-        </Link>
+        </a>
       </p>
-    </form>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Expense } from '@/types/expense';
-import { formatCurrency } from '@/lib/money';
+import { formatRupees } from '@/lib/money';
 
 interface CategorySummaryCardsProps {
   expenses: Expense[];
@@ -10,7 +10,7 @@ interface CategorySummaryCardsProps {
 export default function CategorySummaryCards({ expenses }: CategorySummaryCardsProps) {
   const categoryTotals = expenses.reduce(
     (acc, expense) => {
-      acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+      acc[expense.category] = (acc[expense.category] || 0) + parseFloat(expense.amount_rupees);
       return acc;
     },
     {} as Record<string, number>
@@ -33,7 +33,7 @@ export default function CategorySummaryCards({ expenses }: CategorySummaryCardsP
           className={`${categoryColors[category] || 'bg-gray-50'} p-4 rounded-lg shadow`}
         >
           <p className="text-sm text-gray-600 mb-2">{category}</p>
-          <p className="text-lg font-bold text-gray-900">{formatCurrency(total)}</p>
+          <p className="text-lg font-bold text-gray-900">{formatRupees(total)}</p>
         </div>
       ))}
     </div>

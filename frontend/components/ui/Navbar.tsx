@@ -1,53 +1,32 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/api";
 
-export default function Navbar() {
+interface NavbarProps {
+  email?: string;
+}
+
+export default function Navbar({ email }: NavbarProps) {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/signin');
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/signin");
   };
 
   return (
-    <nav className="bg-blue-600 text-white shadow-lg">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold">
-          Expense Tracker
-        </Link>
-
-        <div className="flex gap-4">
-          {isLoggedIn ? (
-            <>
-              <Link href="/dashboard" className="hover:bg-blue-700 px-3 py-2 rounded">
-                Dashboard
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="hover:bg-blue-700 px-3 py-2 rounded"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/signin" className="hover:bg-blue-700 px-3 py-2 rounded">
-                Sign In
-              </Link>
-              <Link href="/signup" className="hover:bg-blue-700 px-3 py-2 rounded">
-                Sign Up
-              </Link>
-            </>
-          )}
+    <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-6 py-3 z-10">
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-semibold text-indigo-600">💰 ExpenseTracker</div>
+        <div className="flex items-center gap-4">
+          {email && <span className="text-sm text-gray-500">{email}</span>}
+          <button
+            onClick={handleSignOut}
+            className="text-sm text-gray-600 hover:text-red-600 transition-colors"
+          >
+            Sign out
+          </button>
         </div>
       </div>
     </nav>
